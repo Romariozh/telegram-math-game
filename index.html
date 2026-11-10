@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Math Adventure</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f4f7fb;
+    margin: 0;
+    padding: 20px;
+}
+
+#topbar {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+#question {
+    font-size: 54px;
+    margin: 50px 0;
+}
+
+button {
+    display: block;
+    width: 240px;
+    margin: 10px auto;
+    padding: 15px;
+    font-size: 34px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #4a90e2;
+    color: white;
+    transition: all 0.2s ease;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+button:hover {
+    background: #357abd;
+}
+
+#answerInput {
+    width: 240px;
+    box-sizing: border-box;
+    padding: 20px;
+    font-size: 38px;
+    text-align: center;
+}
+
+#inputArea {
+    grid-column: 1 / -1;
+    display: flex;
+    max-width: 520px;
+    margin: 0 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+#answerInput,
+#inputArea button {
+    width: 240px;
+    margin-top: 12px;
+}
+
+#answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    max-width: 460px;
+    margin: 0 auto;
+}
+
+#answers button {
+    width: 100%;
+    margin: 0;
+    padding: 25px;
+    font-size: 40px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #4a90e2;
+    color: white;
+}
+
+#answers button:hover {
+    background: #357abd;
+}
+
+#answers button:disabled {
+    cursor: default;
+}
+
+input {
+    width: 200px;
+    padding: 12px;
+    font-size: 24px;
+    text-align: center;
+}
+
+#message {
+    height: 40px;
+    font-size: 30px;
+    margin: 20px;
+    font-weight: bold;
+}
+
+.correct {
+    color: green;
+}
+
+.wrong {
+    color: red;
+}
+</style>
+
+</head>
+<body>
+
+<div id="topbar">
+<p>
+📚 <span id="modeLabel">Сложение</span>
+&nbsp;&nbsp;
+🔥 Серия: <span id="streak">0</span>
+&nbsp;&nbsp;
+📈 Точность: <span id="accuracy">0%</span>
+</p>
+🙂 <span id="good">0</span>
+&nbsp;&nbsp;&nbsp;
+🙁 <span id="bad">0</span>
+&nbsp;&nbsp;&nbsp;
+🎯 <span id="total">0</span>
+</div>
+
+<div id="question"></div>
+
+<div id="message"></div>
+
+<div id="answers"></div>
+
+<script>
+
+let correctAnswer = 0;
+
+let goodCount = 0;
+let badCount = 0;
+let streak = 0;
+let gameMode = "add";
+let modeGoodCount = 0;
+
+const praiseMessages = [
+    "✅ Правильно!",
+    "🌟 Отлично!",
+    "🚀 Молодец!",
+    "🎉 Так держать!",
+    "💪 Верно!",
+    "⭐ Замечательно!",
+    "🔥 Точно в цель!"
+];
+
+const wrongMessages = [
+    "❌ Неверно",
+    "🤔 Попробуем ещё",
+    "📚 Бывает",
+    "🙃 Почти получилось",
+];
+
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+function randomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function updateScore() {
+    document.getElementById("good").textContent = goodCount;
+    document.getElementById("bad").textContent = badCount;
+    document.getElementById("streak").textContent = streak;
+    
+    let total = goodCount + badCount;
+
+    document.getElementById("total").textContent = total;
+
+    let accuracy =
+        total === 0
+        ? 100
+        : Math.round(goodCount * 100 / total);
+
+    document.getElementById("accuracy").textContent =
+        `${accuracy}%`;
+}
+
+function showMessage(text, cssClass) {
+    let m = document.getElementById("message");
+    m.textContent = text;
+    m.className = cssClass;
+}
+
+function nextQuestion() {
+
+    document.getElementById("message").textContent = "";
+
+    let a = Math.floor(Math.random() * 8);
+    let b = Math.floor(Math.random() * 8);
+
+    if (gameMode === "add") {
+        correctAnswer = a + b;
+        question.textContent = `${a} + ${b} = ?`;
+    }
+
+    else if (gameMode === "sub") {
+        if (b > a) [a, b] = [b, a];
+
+        correctAnswer = a - b;
+        question.textContent = `${a} - ${b} = ?`;
+    }
+
+    else if (gameMode === "mul") {
+        correctAnswer = a * b;
+        question.textContent = `${a} × ${b} = ?`;
+    }
+
+    else if (gameMode === "div") {
+
+        let answer = Math.floor(Math.random() * 8);
+
+        let divisor = Math.floor(Math.random() * 7) + 1;
+
+        let dividend = answer * divisor;
+
+        correctAnswer = answer;
+
+        document.getElementById("question").textContent =
+            `${dividend} ÷ ${divisor} = ?`;
+    }
+
+    let answersDiv = document.getElementById("answers");
+
+    let inputMode = Math.random() < 0.3;
+
+    if (inputMode) {
+
+        answersDiv.innerHTML = `
+            <div id="inputArea">
+                <input id="answerInput"
+                       type="number"
+                       min="0"
+                       max="1000"
+                       autofocus
+                       type="number"
+                       placeholder="\>  \<">
+
+                <button onclick="checkInput()">
+                    Ответить
+                </button>
+            </div>
+        `;
+        setTimeout(() => {
+            document.getElementById("answerInput").focus();
+        }, 50);
+        let input = document.getElementById("answerInput");
+
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                checkInput();
+            }
+        });
+
+    } else {
+
+        let variants = [correctAnswer];
+
+        while (variants.length < 4) {
+
+            let fake =
+                correctAnswer +
+                Math.floor(Math.random() * 7) - 3;
+
+            if (fake >= 0 && !variants.includes(fake)) {
+                variants.push(fake);
+            }
+        }
+        
+        shuffle(variants);
+
+        answersDiv.innerHTML = "";
+
+        let buttons = [];
+
+        variants.forEach(value => {
+
+            let btn = document.createElement("button");
+
+            btn.textContent = value;
+
+            buttons.push(btn);
+
+            btn.onclick = function() {
+
+                // запретить повторные нажатия
+                buttons.forEach(b => b.disabled = true);
+
+                if (value === correctAnswer) {
+                    
+                    btn.style.background = "green";
+
+                } else {
+
+                    // неверный ответ
+                    btn.style.background = "crimson";
+
+                    buttons.forEach(b => {
+
+                        if (Number(b.textContent) === correctAnswer) {
+                            b.style.background = "green";
+                        }
+                    });
+                }
+
+                check(value);
+            };
+
+            answersDiv.appendChild(btn);
+        });
+    }
+}
+
+function check(answer) {
+
+    if (answer === correctAnswer) {
+
+        goodCount++;
+        modeGoodCount++;
+        streak++;
+
+
+        checkLevelUp();
+        updateModeLabel();
+
+        updateScore();
+
+        showMessage(
+            randomItem(praiseMessages),
+            "correct"
+        );
+
+    } else {
+
+        badCount++;
+        streak = 0;
+
+        updateScore();
+
+        showMessage(
+            `${randomItem(wrongMessages)} : = ${correctAnswer}`,
+            "wrong"
+        );
+    }
+
+    setTimeout(nextQuestion, 2500);
+}
+
+function checkInput() {
+
+    let input =
+        document.getElementById("answerInput");
+
+    let value = input.value.trim();
+
+    if (value === "") {
+        alert("Введите число");
+        input.focus();
+        return;
+    }
+
+    let answer = parseInt(value, 10);
+
+    if (isNaN(answer)) {
+        alert("Можно вводить только цифры");
+        input.focus();
+        return;
+    }
+
+    check(answer);
+}
+
+updateScore();
+nextQuestion();
+
+function checkLevelUp() {
+
+    if (modeGoodCount < 10)
+        return;
+
+    if (streak < 5)
+        return;
+
+    if (gameMode === "add") {
+
+        gameMode = "sub";
+
+        modeGoodCount = 0;
+        streak = 0;
+
+        showMessage(
+            "🎉 Новый уровень: Вычитание!",
+            "correct"
+        );
+
+        return;
+    }
+
+    if (gameMode === "sub") {
+
+        gameMode = "mul";
+
+        modeGoodCount = 0;
+        streak = 0;
+
+        showMessage(
+            "🎉 Новый уровень: Умножение!",
+            "correct"
+        );
+
+        return;
+    }
+
+    if (gameMode === "mul") {
+
+        gameMode = "div";
+
+        modeGoodCount = 0;
+        streak = 0;
+
+        showMessage(
+            "🎉 Новый уровень: Деление!",
+            "correct"
+        );
+
+        return;
+    }
+
+    if (gameMode === "div") {
+
+        gameMode = "mul";
+
+        modeGoodCount = 0;
+        streak = 0;
+
+        showMessage(
+            "🎉 Новый уровень: Умножение!",
+            "correct"
+        );
+
+        updateModeLabel();
+
+        return;
+    }
+}
+
+function updateModeLabel() {
+
+    const names = {
+        add: "Сложение",
+        sub: "Вычитание",
+        mul: "Умножение",
+        div: "Деление"
+    };
+
+    document.getElementById("modeLabel").textContent =
+        names[gameMode];
+}
+</script>
+
+</body>
+</html>
